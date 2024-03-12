@@ -4,7 +4,7 @@
 	box-sizing: border-box;
 }
 body{
-	background:  url('/assets/images/background1.gif') no-repeat fixed center;
+	background:  url('/assets/images/picking_background.gif') no-repeat fixed center;
 	background-size: cover;
 	font-family: Impact;
 }
@@ -13,6 +13,11 @@ body{
 	padding: 15px 0px 15px 0px;
 	position: relative;
 }
+
+#characters > img:hover{
+	border: 1px solid yellow;
+}
+
 h1 {
 	text-align: center;
 	color: red;
@@ -29,16 +34,7 @@ img.picked {
 	width: 377px;
 	height: 386px;
 }
-nav {
-	margin-top: 30px;
-	width: 400px;
-}
-	nav > img {
-		width: 18%;
-	}
-	nav > img:hover{
-		border: 1px solid yellow;
-	}
+
 h2 {
 	text-align: center;
 	color: rgb(131, 20, 0);
@@ -74,4 +70,16 @@ button {
 	background-color: rgb(0, 17, 255);
 	color: rgb(238, 194, 194);
 	border: 3px dotted steelblue;
+}
+
+#timer {
+	@import url('https://fonts.googleapis.com/css2?family=Teko:wght@300..700&display=swap')
+	font-family: "Teko", sans-serif;
+	font-optical-sizing: auto;
+	font-weight: <weight>;
+	font-style: normal;
+    font-size: 80px;
+    padding: 20px;
+    color: red;
+	text-shadow: 2px 2px 4px yellow;
 }

@@ -5,106 +5,104 @@ const server = app.listen(8000);
 const io = require('socket.io')(server);
 const public_folder = __dirname + "/public";
 
-// let users=[];
-// let client_ids =[];
-// let allClients = [];
-// let ids=[];
-
 //use body parser
 app.use(bodyParser.urlencoded({extended: true}));
 // this is the line that tells our server to use the "/static" folder for static content
-app.use(express.static(public_folder));
+app.use(express.static(__dirname + "/public"));
+app.set('views', __dirname + '/views'); 
+app.set('view engine', 'ejs');
 
-// function listSocketsProperty(myProperty){
-//     let sck = io.sockets.sockets
-//     const mapIter = sck.entries()
-//     let result = [];
-//     while(1){
-//       let en = mapIter.next().value?.[0]
-//       if(en) {
-//         result.push(sck.get(en)[myProperty])
-//       }else 
-//         break
-//     }
-//     return result;
-// }
+let client_ids =[];
+let ids=[];
+let backgound = ['background1','background2','background4'];
+let arena;
+let fighter;
 
-// function remove_duplicates(arr) {
-//     let s = new Set(arr);
-//     let it = s.values();
-//     return Array.from(it);
-// }
+// ====== ROUTE ====== //
+app.get("/", function (request, response){
+	response.render('index');
+})
+app.get("/arena", function (request, response){
+	response.render('arena');
+})
+app.post("/pick_fighter", function (request, response){
+    fighter = request.body;
+    arena = backgound[Math.floor(Math.random() * backgound.length)];
+	response.redirect('arena');
+})
 
-// // socket events
-// io.on('connection', function (socket){
-//     socket.emit('new_connection');
+// ====== END OF ROUTE ====== //
+// This function gets the new connection's property, specifically the socket ids
+function listSocketsProperty(myProperty){
+    let sck = io.sockets.sockets
+    const mapIter = sck.entries()
+    let result = [];
+    while(1){
+      let en = mapIter.next().value?.[0]
+      if(en) {
+        result.push(sck.get(en)[myProperty])
+      }else 
+        break
+    }
+    return result;
+}
+
+// This function removes socket duplicates from the list of sockets that have entered
+function remove_duplicates(arr) {
+    let s = new Set(arr);
+    let it = s.values();
+    return Array.from(it);
+}
+/* REFRESHER:
+    io.sockets.emit = all sockets
+    socket.broadcast.emit = all rooms EXCEPT OWN socket
+    socket.emit = OWN socket ONLY
+*/
+
+// socket events
+io.sockets.on('connection', function (socket){
+    socket.emit('new_connection');
     
-//     //max of 2 users only
-//     socket.on('new_user', function (data){
-//         if(users.length<2){
-//             users.push(data.name);
-//             client_ids.push(socket.id)
-            
-//             allClients.push(socket);
-//             if(socket.id == allClients[0].id){
-//                 socket.username = 'yes';
-//             }else{
-//                 socket.username = 'no';
-//             }
-//             socket.emit('entered_room', {name: data.name, host:socket.username})
-//             socket.broadcast.emit('new_user_entered', {name: data.name, host:socket.username})
-//         }else{
-//             socket.emit('2_players_only')
-//         }
-//         console.log(client_ids)
-//         console.log('current: ' + allClients.length)
-//     })
+    //max of 2 users only
+    socket.on('new_user', function (){
+        if(client_ids.length<2){
+            client_ids.push(socket.id) //This would push the socket ids to a variable
 
-//     socket.on('start', function(){
-//         io.sockets.emit('all_start');
+            if(client_ids.length == 2){
+                io.sockets.emit('all_players_entered');
+            }else{
+                socket.emit('waiting_room');
+            }
+        }else{
+            socket.emit('2_players_only')
+        }
+    })
 
-//     })
+    socket.on('backend_set_player', function(player){
+        socket.broadcast.emit('frontend_set_player', player);
+    })
 
-//     socket.on('broadcast_state', function(block){
-//         socket.broadcast.emit('broadcasted_newGameState', block);
-//     })
+    socket.on('start_fight', function(){
+        console.log(fighter)
+    })
 
-//     socket.on('broadcast_move', function(move){
-//         socket.broadcast.emit('broadcasted_move', move);
-//     })
+    /*when user disconnects */
+    socket.once('disconnect', function (){ 
+        ids = listSocketsProperty('id');
+        ids = remove_duplicates(ids);
 
-//     socket.on('broadcast_grid', function(i){
-//         socket.broadcast.emit('broadcasted_grid', i);
-//     })
+        let difference = client_ids.filter(x => !ids.includes(x));
 
-//     socket.on('game_over', function(data){
-//         console.log(data.loser)
-//         let loser = data.loser.replace("Player ", "");
-//         loser = loser.replace(" ", "");
-//         let winner = users.indexOf(loser);
-//         socket.broadcast.emit('over', {winner: users[winner]});
-//     })  
-
-//     /*when user disconnects */
-//     socket.on('disconnected', function (){ 
-//         ids = listSocketsProperty('id');
-        
-//         ids = remove_duplicates(ids);
-//         let difference = client_ids.filter(x => !ids.includes(x));
-
-//         for(var i in allClients){
-//             for(var x in difference){
-//                 if(allClients[i].id == difference[x]){
-//                     removed_user = users.splice(i, 1);
-//                     allClients.splice(i, 1);
-//                 }
-//             }
-//         }
-//         if(client_ids.length == 0){
-//             client_ids=[];
-//             users=[];
-//         }
-//     })
-// })
-
+        for(var i in client_ids){
+            for(var x in difference){
+                if(client_ids[i] == difference[x]){
+                    client_ids.splice(i, 1);
+                }
+            }
+        }
+        if(client_ids.length == 1){
+            io.sockets.emit('waiting_room');
+        }
+    })
+})
 console.log('Server is listening on port 8000');
