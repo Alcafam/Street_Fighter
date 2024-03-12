@@ -43,5 +43,4 @@
             highlight($(this));
             saveSelection($(this), $(this).attr("name"), $(this).attr("data-animated-img"));
         });
-
     })

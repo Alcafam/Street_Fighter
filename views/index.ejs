@@ -13,39 +13,41 @@
 	<script type="text/javascript" src="/socket.io/socket.io.js"></script>
 	<script type="text/javascript" src="./assets/js/choose_player.js"></script>
 	<script type="text/javascript" src="./assets/js/socket_events.js"></script>
+	<script type="text/javascript" src="./assets/js/functions.js"></script>
 </head>
 <body>
-	<div class="modal" tabindex="-1" id="new_connection_modal">
-		<div class="modal-dialog">
-			<div class="modal-content">
-				<div class="modal-body">
-					Hello Player! Waiting for Opponent...
+	<section id="selection" width="100%">
+		<div class="modal" tabindex="-1" id="new_connection_modal">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-body">
+						Hello Player! Waiting for Opponent...
+					</div>
 				</div>
 			</div>
 		</div>
-	</div>
-	<div id="wrapper">
-		<h1>Choose Player <br><span id="pick_name"></span></h1>
-		<div class="text-center" id="player">
-			<img class="picked" src="./assets/images/chunli_move.gif" />
-			<h2 id="player_pick"></h2>	
-		</section>
-		<form id="arena_form" method="post" action="/pick_fighter">
-			<input type="hidden" name="fighter" id="fighter">
-			<input type="hidden" id="player_default" value="./assets/images/chunli_move.gif"/>
-		</form>
-	</div> 
-
-	<div class="text-center" id="characters">
-		<img name="Chun Li" src="./assets/images/chunli.png" data-animated-img="./assets/images/chunli_move.gif" class="chosen"/>
-		<img name="Guile" src="./assets/images/guile.png" data-animated-img="./assets/images/guile_move.gif"/>
-		<img name="Vega"src="./assets/images/vega.png" data-animated-img="./assets/images/vega_move.gif"/>
-		<img name="Fei Long" src="./assets/images/feilong.png" data-animated-img="./assets/images/feilong_move.gif"/>
-		<img name="Blanka" src="./assets/images/blanka.png" data-animated-img="./assets/images/blanka_move.gif"/>
-	</div>
+		<div id="wrapper">
+			<h1>Choose Player <br><span id="pick_name"></span></h1>
+			<div class="text-center" id="player">
+				<img class="picked" src="./assets/images/ryu_move.gif" />
+				<h2 id="player_pick"></h2>	
+			</div>
+			<input type="hidden" id="fighter" value="Ryu"/>
+			<input type="hidden" id="player_default" value="./assets/images/ryu_move.gif"/>
+		</div> 
 	
-	<div id="timer" class="text-center">
+		<div class="text-center" id="characters">
+			<img name="Ryu" src="./assets/images/ryu.png" data-animated-img="./assets/images/ryu_move.gif" class="chosen"/>
+			<!-- <img name="Guile" src="./assets/images/guile.png" data-animated-img="./assets/images/guile_move.gif"/>
+			<img name="Vega"src="./assets/images/vega.png" data-animated-img="./assets/images/vega_move.gif"/>
+			<img name="Fei Long" src="./assets/images/feilong.png" data-animated-img="./assets/images/feilong_move.gif"/> -->
+			<img name="Blanka" src="./assets/images/blanka.png" data-animated-img="./assets/images/blanka_move.gif"/>
+		</div>
 		
-	</div>
+		<div id="timer" class="text-center"></div>	
+	</section>
+
+	<section id="arena" width="100%">
+	</section>
 </body>
 </html>
