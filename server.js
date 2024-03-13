@@ -15,15 +15,10 @@ app.set('view engine', 'ejs');
 let client_ids =[];
 let ids=[];
 let backgound = ['background1','background2','background3'];
-let player_1='';
-let player_2='';
 
 // ====== ROUTE ====== //
 app.get("/", function (request, response){
 	response.render('index');
-})
-app.get("/arena", function (request, response){
-	response.render('arena');
 })
 
 // ====== END OF ROUTE ====== //
@@ -61,7 +56,9 @@ io.sockets.on('connection', function (socket){
     //max of 2 users only
     socket.on('new_user', function (){
         if(client_ids.length<2){
-            client_ids.push(socket.id) //This would push the socket ids to a variable
+            if(!client_ids.includes(socket.id)){
+                client_ids.push(socket.id) //This would push the socket ids to a variable
+            }
 
             if(client_ids.length == 2){
                 io.sockets.emit('all_players_entered');
@@ -77,34 +74,53 @@ io.sockets.on('connection', function (socket){
         socket.broadcast.emit('frontend_set_player', player);
     })
 
-    socket.on('setup', function(fighter){        
+    socket.on('setup', function(fighter){  
+        let number;
+        let arena = backgound[0];      
         if(socket.id==client_ids[0]){
-            player_1 = fighter
+            number = 1
         }else{
-            player_2 = fighter;
+            number = 2;
         }
-        socket.emit('frontend_setup');
+        socket.emit('start_fight', {fighter:fighter, number:number, arena:arena})
+        socket.broadcast.emit('broadcast_start_fight', {fighter:fighter, number:number, arena:arena})
     })
 
-    socket.on('setup_arena', function(){
-        let arena = backgound[Math.floor(Math.random() * backgound.length)];
-        if(socket.id==client_ids[0]){
-            io.sockets.emit('start_fight', {
-                player_1:{
-                    fighter: player_1,
-                    number: 1
-                },
-                player_2:{
-                    fighter: player_2,
-                    number: 2
-                },
-                arena:arena
-            })
+    // movements
+    socket.on('backend_move_left', function(data){
+        socket.emit('move_left', {left:data.left, picture:data.picture});
+        socket.broadcast.emit('enemy_move_left', {left:data.left, picture:data.picture});
+    })
+
+    socket.on('backend_move_right', function(data){
+        socket.emit('move_right', {left:data.left, picture:data.picture});
+        socket.broadcast.emit('enemy_move_right', {left:data.left, picture:data.picture});
+    })
+
+    socket.on('backend_jump', function(data){
+        socket.emit('jump', {bottom:data.bottom, picture:data.picture});
+        socket.broadcast.emit('enemy_jump', {bottom:data.bottom, picture:data.picture});
+    })
+
+    socket.on('backend_punch', function(picture){
+        socket.emit('punch', picture);
+        socket.broadcast.emit('enemy_punch', picture);
+    })
+
+    socket.on('game_over', function(player){
+        let winner;
+        if(player = "player_1"){
+            winner="Player 1";
+        }else{
+            winner="Player 2";
         }
+
+        io.sockets.emit('winner', winner);
     })
 
     /*when user disconnects */
     socket.once('disconnect', function (){ 
+        io.sockets.emit('reset_page');
         ids = listSocketsProperty('id');
         ids = remove_duplicates(ids);
 
@@ -120,6 +136,10 @@ io.sockets.on('connection', function (socket){
         if(client_ids.length == 1){
             io.sockets.emit('waiting_room');
         }
+    })
+
+    socket.on('restart', function(){
+        io.sockets.emit('reset_page')
     })
 })
 console.log('Server is listening on port 8000');

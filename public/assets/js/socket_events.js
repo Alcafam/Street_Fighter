@@ -1,6 +1,7 @@
 $(document).ready(function(){
     const socket = io();
-
+    var fighter;
+    var enemy;
     // This snippet opens modal when New Connection is made
     socket.on('new_connection', function (){
         $('#selection').attr('hidden',false)
@@ -10,21 +11,31 @@ $(document).ready(function(){
 
     // 
     socket.on('2_players_only', function (){
-        $('#new_connection_modal').modal('hide');
+        $('#game_modal').modal('hide');
         $('#sorry_modal').modal({backdrop: 'static', keyboard: false})  
         $('#sorry_modal').modal('show');
     });
     
     // Waiting room
     socket.on('waiting_room', function (){ 
-        $('#new_connection_modal').modal('show');
+        $('.modal-body').empty();
+        $('.modal-body').prepend('<h1>Hello Player 1! <br>Waiting for Opponent...</h1>');
+        $('#game_modal').modal({backdrop: 'static', keyboard: false})  
+        $('#game_modal').modal('show');
     })
 
     // When both player enter, the conter starts
     socket.on('all_players_entered', function(){
-        $('#new_connection_modal').modal('hide');
-        $('#new_connection_modal').modal({backdrop: 'static', keyboard: false}) 
-        select_timer(3)
+        add_music('./assets/sounds/player_select.mp3')
+            .then(() => {
+                $('#background_music').get(0).play();
+            })
+            .catch((error) => {
+                console.error('An error occurred:', error);
+            });
+        $('#game_modal').modal('hide');
+        $('#game_modal').modal({backdrop: 'static', keyboard: false}) 
+        select_timer(5)
         .then(() => {
             document.getElementById('timer').innerText = 'Time\'s up!';
             socket.emit('setup',$('#fighter').val())
@@ -39,49 +50,118 @@ $(document).ready(function(){
         $('#'+player_num+'_pick').text(player_num);
     })
 
-    socket.on('frontend_setup',function(){
-        socket.emit('setup_arena');
-    })
-
     socket.on('start_fight', function(data){
-        console.log(data)
         $('#selection').attr('hidden',true)
         $('#arena').attr('hidden',false)
         $('body').css('background', 'url("./assets/images/' + data.arena + '.gif")no-repeat fixed center');
         $('body').css('background-size', 'cover');
-
-        setup_player(data.player_1);
-        setup_player(data.player_2);
+        fighter = new Character(data);
+        fighter.setup_player();
     })
 
+    socket.on('broadcast_start_fight', function(data){
+        enemy = new Character(data);
+        enemy.setup_player();
+    })
+
+    socket.on('reset_page', function(){
+        $('#game_modal').modal('hide');
+        $('#arena').empty();
+        $('#selection').attr('hidden',false);
+        $('#arena').attr('hidden',true);
+        $('.modal-body').empty();
+        $('#audio_area').empty();
+        $('#timer').empty();
+        $("#player_default").val('./assets/images/ryu_move.gif')
+        pick='./assets/images/ryu_move.gif';
+        fighter=null;
+        enemy=null;
+        location.reload();
+    })
+
+    socket.on('move_left', function(data){
+        fighter.left = data.left - 10;
+        fighter.picture = data.picture;
+        fighter.update_left_right();
+    })
+    socket.on('enemy_move_left', function(data){
+        enemy.left = data.left - 10;
+        enemy.picture = data.picture;
+        enemy.update_left_right();
+    })
+
+    socket.on('move_right', function(data){
+        fighter.left = data.left + 10;
+        fighter.picture = data.picture;
+        fighter.update_left_right();
+    })
+    socket.on('enemy_move_right', function(data){
+        enemy.left = data.left + 10;
+        enemy.picture = data.picture;
+        enemy.update_left_right();
+    })
+
+    socket.on('jump', function(data){
+        fighter.bottom = data.bottom + 80;
+        fighter.picture = data.picture;
+        fighter.update_jump();
+    })
+    socket.on('enemy_jump', function(data){
+        enemy.bottom = data.bottom + 80;
+        enemy.picture = data.picture;
+        enemy.update_jump();
+    })
+
+    socket.on('punch', function(picture){
+        fighter.picture = picture;
+        enemy.score=fighter.update_punch(enemy);
+        if(enemy.score <= 0){
+            socket.emit('game_over', fighter.player_num)
+        }
+    })
+    socket.on('enemy_punch', function(picture){
+        enemy.picture = picture;
+        fighter.score=enemy.update_punch(fighter);
+        if(fighter.score <= 0){
+            socket.emit('game_over', enemy.player_num)
+        }
+    })
+
+    socket.on('winner', function(winner){
+        $('.modal-body').empty();
+        $('.modal-body').prepend('<h1>GAME OVER <br> WINNER <br>'+ winner+'</h1>');
+        $('.modal-body').append('<button id="restart_game" class="btn btn-success">Play Again</button>');
+        $('#game_modal').modal({backdrop: 'static', keyboard: false}) 
+        $('#game_modal').modal('show');
+    })
+
+
+// EVENT LISTENERS
     $(document).on('keydown', function(e) {
-        if(direction){
-            count = counter(count)
+        if(fighter.direction){
+            fighter.count = fighter.counter(fighter.count);
             if (e.keyCode == 65) { // LEFT
-                if(left>0){
-                    left = left - 10;
-                    picture = direction+'_'+count+'.png'
-                }                
-                update_left_right();
+                if(fighter.left>0){
+                    socket.emit('backend_move_left', {left:fighter.left,picture:fighter.direction+'_'+fighter.count+'.png'})
+                }       
             }
             else if (e.keyCode == 68) { // RIGHT
-                if(left<1000){
-                    left = left + 10;    
-                    picture = direction+'_'+count+'.png'
+                if(fighter.left<1600){
+                    socket.emit('backend_move_right', {left:fighter.left,picture:fighter.direction+'_'+fighter.count+'.png'})
                 }   
-                update_left_right(); 
             }
             else if(e.keyCode == 32) { // JUMP
-                if(bottom>0){
-                    bottom += 60;
-                    picture = 'jump_'+direction+'.gif'
+                if(fighter.bottom>0){
+                    socket.emit('backend_jump', {bottom:fighter.bottom,picture:'jump_'+fighter.direction+'.gif'})
                 }
-                update_jump()
             }
             else if(e.keyCode == 75){ //PUNCH
-                picture = 'punch_'+direction+'.gif';
-                update_attack()
+                socket.emit('backend_punch', 'punch_'+fighter.direction+'.gif')
             }
         }
+    })
+
+    $(document).on('click', '#restart_game', function(){
+        socket.emit('restart');
     })
 })
